@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, BookOpen, Dumbbell, Moon, MoreHorizontal, Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { routineTasksAPI } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 const RoutineTemplate = () => {
   const { user } = useAuth();
@@ -134,15 +141,35 @@ const RoutineTemplate = () => {
     }));
   };
 
-  // Get category badge color
-  const getCategoryColor = (category) => {
-    const colors = {
-      Learning: 'bg-blue-100 text-blue-700',
-      Fitness: 'bg-green-100 text-green-700',
-      Rest: 'bg-purple-100 text-purple-700',
-      Other: 'bg-gray-100 text-gray-700'
+  // Get category icon and styling
+  const getCategoryIcon = (category) => {
+    const config = {
+      Learning: {
+        icon: BookOpen,
+        bgColor: 'bg-momentum-lavender',
+        iconColor: 'text-purple-700',
+        borderColor: 'border-purple-300'
+      },
+      Fitness: {
+        icon: Dumbbell,
+        bgColor: 'bg-momentum-cream',
+        iconColor: 'text-amber-700',
+        borderColor: 'border-yellow-300'
+      },
+      Rest: {
+        icon: Moon,
+        bgColor: 'bg-momentum-lavender-light',
+        iconColor: 'text-purple-600',
+        borderColor: 'border-purple-200'
+      },
+      Other: {
+        icon: MoreHorizontal,
+        bgColor: 'bg-gray-100',
+        iconColor: 'text-gray-600',
+        borderColor: 'border-gray-300'
+      }
     };
-    return colors[category] || colors.Other;
+    return config[category] || config.Other;
   };
 
   return (
@@ -206,17 +233,21 @@ const RoutineTemplate = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category *
                   </label>
-                  <select
+                  <Select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    onValueChange={(value) => setFormData({ ...formData, category: value })}
                   >
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Planned Minutes */}
@@ -260,9 +291,20 @@ const RoutineTemplate = () => {
                 {/* Form Buttons */}
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" className="flex-1">
-                    {editingTask ? 'Update Task' : 'Create Task'}
+                    {editingTask ? (
+                      <>
+                        <Check size={16} className="mr-1" />
+                        Update Task
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} className="mr-1" />
+                        Create Task
+                      </>
+                    )}
                   </Button>
                   <Button type="button" variant="outline" onClick={resetForm} className="flex-1">
+                    <X size={16} className="mr-1" />
                     Cancel
                   </Button>
                 </div>
@@ -277,7 +319,8 @@ const RoutineTemplate = () => {
             <h2 className="text-lg font-semibold">Tasks for {selectedDay}</h2>
             {!showForm && (
               <Button onClick={() => setShowForm(true)}>
-                + Add Task
+                <Plus size={16} className="mr-1" />
+                Add Task
               </Button>
             )}
           </div>
@@ -293,34 +336,45 @@ const RoutineTemplate = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {tasks.map((task) => (
-                <Card key={task.id}>
-                  <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-lg">{task.name}</h3>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className={`text-sm px-2 py-1 rounded ${getCategoryColor(task.category)}`}>
-                          {task.category}
-                        </span>
-                        <span className="text-sm px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                          {task.planned_minutes} min
-                        </span>
-                        <span className="text-xs text-gray-500 px-2 py-1 bg-gray-50 rounded">
-                          Active: {task.active_days.join(', ')}
-                        </span>
+              {tasks.map((task) => {
+                const categoryConfig = getCategoryIcon(task.category);
+                const CategoryIcon = categoryConfig.icon;
+
+                return (
+                  <Card key={task.id}>
+                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          {/* Category Icon Square */}
+                          <div className={`${categoryConfig.bgColor} ${categoryConfig.borderColor} border rounded-lg p-2 flex items-center justify-center`}>
+                            <CategoryIcon size={20} className={categoryConfig.iconColor} />
+                          </div>
+                          {/* Task Name */}
+                          <h3 className="font-medium text-lg">{task.name}</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2 ml-11">
+                          <span className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full border border-gray-300 font-medium">
+                            {task.planned_minutes} min
+                          </span>
+                          <span className="text-xs text-gray-600 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+                            Active: {task.active_days.join(', ')}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => startEdit(task)}>
-                        Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(task.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => startEdit(task)}>
+                          <Pencil size={16} className="mr-1" />
+                          Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(task.id)}>
+                          <Trash2 size={16} className="mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

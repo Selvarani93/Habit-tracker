@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { interviewsAPI } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 const Interviews = () => {
   const { user } = useAuth();
@@ -140,12 +147,12 @@ const Interviews = () => {
   // Get status badge color
   const getStatusColor = (status) => {
     const colors = {
-      applied: 'bg-gray-100 text-gray-700',
-      replied: 'bg-blue-100 text-blue-700',
-      interview_scheduled: 'bg-yellow-100 text-yellow-700',
-      interview_done: 'bg-green-100 text-green-700',
-      offer: 'bg-green-200 text-green-800',
-      rejected: 'bg-red-100 text-red-700'
+      applied: 'bg-momentum-lavender-light text-purple-700 border border-purple-200',
+      replied: 'bg-cyan-100 text-cyan-700 border border-cyan-300',
+      interview_scheduled: 'bg-momentum-cream text-amber-800 border border-yellow-300',
+      interview_done: 'bg-teal-100 text-teal-700 border border-teal-300',
+      offer: 'bg-emerald-200 text-emerald-900 border border-emerald-400',
+      rejected: 'bg-rose-100 text-rose-700 border border-rose-300'
     };
     return colors[status] || colors.applied;
   };
@@ -153,9 +160,9 @@ const Interviews = () => {
   // Get priority badge color
   const getPriorityColor = (priority) => {
     const colors = {
-      high: 'bg-red-100 text-red-700',
-      medium: 'bg-yellow-100 text-yellow-700',
-      low: 'bg-gray-100 text-gray-600'
+      high: 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-300',
+      medium: 'bg-orange-100 text-orange-700 border border-orange-300',
+      low: 'bg-zinc-100 text-zinc-600 border border-zinc-300'
     };
     return colors[priority] || colors.medium;
   };
@@ -212,7 +219,8 @@ const Interviews = () => {
             {/* Add Button */}
             {!showForm && (
               <Button onClick={() => setShowForm(true)}>
-                + Add Interview
+                <Plus size={16} className="mr-1" />
+                Add Interview
               </Button>
             )}
           </div>
@@ -271,18 +279,22 @@ const Interviews = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status *
                   </label>
-                  <select
+                  <Select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    onValueChange={(value) => setFormData({ ...formData, status: value })}
                   >
-                    <option value="applied">Applied</option>
-                    <option value="replied">Replied</option>
-                    <option value="interview_scheduled">Interview Scheduled</option>
-                    <option value="interview_done">Interview Done</option>
-                    <option value="offer">Offer</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="applied">Applied</SelectItem>
+                      <SelectItem value="replied">Replied</SelectItem>
+                      <SelectItem value="interview_scheduled">Interview Scheduled</SelectItem>
+                      <SelectItem value="interview_done">Interview Done</SelectItem>
+                      <SelectItem value="offer">Offer</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Priority Dropdown */}
@@ -290,15 +302,19 @@ const Interviews = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Priority *
                   </label>
-                  <select
+                  <Select
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    onValueChange={(value) => setFormData({ ...formData, priority: value })}
                   >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Interview Rounds */}
@@ -343,9 +359,20 @@ const Interviews = () => {
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" className="flex-1">
-                    {editingInterview ? 'Update Interview' : 'Create Interview'}
+                    {editingInterview ? (
+                      <>
+                        <Check size={16} className="mr-1" />
+                        Update Interview
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} className="mr-1" />
+                        Create Interview
+                      </>
+                    )}
                   </Button>
                   <Button type="button" variant="outline" onClick={resetForm} className="flex-1">
+                    <X size={16} className="mr-1" />
                     Cancel
                   </Button>
                 </div>
@@ -380,9 +407,11 @@ const Interviews = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => startEdit(interview)}>
+                          <Pencil size={16} className="mr-1" />
                           Edit
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => handleDelete(interview.id)}>
+                          <Trash2 size={16} className="mr-1" />
                           Delete
                         </Button>
                       </div>
@@ -390,10 +419,10 @@ const Interviews = () => {
 
                     {/* Badges: Status & Priority */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      <span className={`text-sm px-3 py-1 rounded-full font-medium ${getStatusColor(interview.status)}`}>
+                      <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${getStatusColor(interview.status)}`}>
                         {formatStatus(interview.status)}
                       </span>
-                      <span className={`text-sm px-3 py-1 rounded-full font-medium ${getPriorityColor(interview.priority)}`}>
+                      <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${getPriorityColor(interview.priority)}`}>
                         {interview.priority.toUpperCase()} Priority
                       </span>
                     </div>

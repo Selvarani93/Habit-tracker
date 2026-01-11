@@ -3,6 +3,8 @@ import { TrendingUp, Target, Clock, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { analyticsAPI } from '../services/api';
 import { Button } from '../components/ui/button';
+import CalendarHeatmap from 'react-calendar-heatmap';
+import 'react-calendar-heatmap/dist/styles.css';
 
 const Analytics = () => {
   const { user } = useAuth();
@@ -55,23 +57,80 @@ const Analytics = () => {
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
-  // Helper: Generate weekly data structure
-  const generateWeeklyData = (data) => {
-    const today = new Date();
-    const weekData = [];
+  // Helper: Format date to YYYY-MM-DD without timezone issues
+  const formatDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      weekData.push({
-        date: date.toISOString().split('T')[0],
-        completion_rate: data.completion_rate,
-        total: Math.floor(data.total_tasks / 7),
-        completed: Math.floor(data.completed_tasks / 7)
-      });
+  // Helper: Generate complete date range for current week (Sunday to Saturday)
+  const generateWeekData = (data) => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Calculate Sunday of current week
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - currentDay);
+
+    const result = [];
+
+    // Generate 7 days from Sunday to Saturday
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
+      const dateStr = formatDateString(date);
+
+      const existingData = data.find(d => d.date === dateStr);
+
+      if (existingData) {
+        result.push(existingData);
+      } else {
+        result.push({
+          date: dateStr,
+          total: 0,
+          completed: 0,
+          completion_rate: 0
+        });
+      }
     }
 
-    return weekData;
+    return result;
+  };
+
+  // Helper: Generate complete date range for current month (1st to last day)
+  const generateMonthData = (data) => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-11
+
+    // Last day of current month
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    const result = [];
+
+    // Generate all days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
+      const dateStr = formatDateString(date);
+
+      const existingData = data.find(d => d.date === dateStr);
+
+      if (existingData) {
+        result.push(existingData);
+      } else {
+        result.push({
+          date: dateStr,
+          total: 0,
+          completed: 0,
+          completion_rate: 0
+        });
+      }
+    }
+
+    return result;
   };
 
   // Loading state
@@ -126,10 +185,11 @@ const Analytics = () => {
     );
   }
 
-  // Get chart data based on period
+  // Get chart data based on period (use actual daily_trend from backend)
+  const rawChartData = analyticsData.daily_trend || [];
   const chartData = timePeriod === 'weekly'
-    ? generateWeeklyData(analyticsData)
-    : (analyticsData.daily_trend || []).slice(-7);
+    ? generateWeekData(rawChartData)
+    : generateMonthData(rawChartData);
 
   // Get categories with tasks
   const categories = Object.entries(analyticsData.category_breakdown || {})
@@ -253,48 +313,120 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Weekly Trend Chart */}
+        {/* Daily Completion and Category Breakdown - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Daily Completion Visualization */}
           <div className="bg-white rounded-lg shadow-sm border border-border p-6">
             <h2 className="text-lg font-semibold mb-4">
-              {timePeriod === 'weekly' ? 'Weekly' : 'Recent'} Trend
+              Daily Completion - {timePeriod === 'weekly'
+                ? 'This Week'
+                : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
+
             {chartData.length > 0 ? (
-              <div className="w-full">
-                <div className="flex items-end justify-around h-[200px] border-b border-gray-300 px-2">
-                  {chartData.map((day, index) => {
-                    const height = (day.completion_rate / 100) * 180;
-                    return (
-                      <div key={index} className="flex flex-col items-center gap-2 flex-1">
-                        <div className="relative w-full max-w-[40px] h-[180px] bg-gray-100 rounded-t flex items-end justify-center">
-                          <div
-                            className="w-full bg-primary rounded-t transition-all duration-300"
-                            style={{
-                              height: `${height}px`,
-                              minHeight: day.completion_rate > 0 ? '4px' : '0'
-                            }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-600 text-center">
-                          {formatChartDate(day.date)}
-                        </span>
-                        <span className="text-xs font-medium text-gray-900">
-                          {day.completion_rate.toFixed(0)}%
-                        </span>
-                      </div>
-                    );
-                  })}
+              <>
+                {timePeriod === 'weekly' ? (
+                  /* Weekly View - Simple Horizontal Grid */
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-7 gap-2">
+                      {chartData.map((day, index) => {
+                        const dayDate = new Date(day.date);
+                        const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'short' });
+                        const getColorClass = (rate) => {
+                          if (rate === 0) return 'bg-gray-100 border-gray-300';
+                          if (rate < 25) return 'bg-purple-100 border-purple-200';
+                          if (rate < 50) return 'bg-purple-200 border-purple-300';
+                          if (rate < 75) return 'bg-purple-400 border-purple-500';
+                          return 'bg-purple-600 border-purple-700';
+                        };
+
+                        return (
+                          <div key={index} className="flex flex-col items-center">
+                            <div className="text-[10px] font-medium text-gray-600 mb-1">{dayName}</div>
+                            <div
+                              className={`w-14 h-14 rounded-lg border-2 ${getColorClass(day.completion_rate)} flex flex-col items-center justify-center transition-all hover:scale-105 hover:shadow-md cursor-pointer`}
+                              title={`${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: ${day.completed}/${day.total} tasks`}
+                            >
+                              {day.total === 0 ? (
+                                <div className="text-xs text-gray-400">-</div>
+                              ) : (
+                                <>
+                                  <div className={`text-sm font-bold ${day.completion_rate >= 75 ? 'text-white' : 'text-gray-800'}`}>
+                                    {day.completed}/{day.total}
+                                  </div>
+                                  <div className={`text-[10px] ${day.completion_rate >= 75 ? 'text-purple-100' : 'text-gray-600'}`}>
+                                    {day.completion_rate.toFixed(0)}%
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <div className="text-[9px] text-gray-500 mt-1">
+                              {dayDate.getDate()} {dayDate.toLocaleDateString('en-US', { month: 'short' })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* Monthly View - Horizontal Grid */
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-7 gap-1">
+                      {chartData.map((day, index) => {
+                        const dayDate = new Date(day.date);
+                        const getColorClass = (rate) => {
+                          if (rate === 0) return 'bg-gray-100 border-gray-300';
+                          if (rate < 25) return 'bg-purple-100 border-purple-200';
+                          if (rate < 50) return 'bg-purple-200 border-purple-300';
+                          if (rate < 75) return 'bg-purple-400 border-purple-500';
+                          return 'bg-purple-600 border-purple-700';
+                        };
+
+                        return (
+                          <div key={index} className="flex flex-col items-center">
+                            <div
+                              className={`w-8 h-8 rounded border ${getColorClass(day.completion_rate)} flex flex-col items-center justify-center transition-all hover:scale-110 hover:shadow-md cursor-pointer`}
+                              title={`${dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: ${day.completed}/${day.total} tasks (${day.completion_rate.toFixed(0)}%)`}
+                            >
+                              {day.total === 0 ? (
+                                <div className="text-[8px] text-gray-400">-</div>
+                              ) : (
+                                <div className={`text-[9px] font-bold ${day.completion_rate >= 75 ? 'text-white' : 'text-gray-700'}`}>
+                                  {day.completed}/{day.total}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-[7px] text-gray-500 mt-0.5">
+                              {dayDate.getDate()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-4 mt-6 text-sm text-gray-600">
+                  <span>Less</span>
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 rounded bg-gray-100 border border-gray-300"></div>
+                    <div className="w-3 h-3 rounded bg-purple-100 border border-purple-200"></div>
+                    <div className="w-3 h-3 rounded bg-purple-200 border border-purple-300"></div>
+                    <div className="w-3 h-3 rounded bg-purple-400 border border-purple-500"></div>
+                    <div className="w-3 h-3 rounded bg-purple-600 border border-purple-700"></div>
+                  </div>
+                  <span>More</span>
                 </div>
-              </div>
+              </>
             ) : (
               <div className="text-center py-12 text-gray-500">
-                <p>No trend data available</p>
+                <p>No completion data available</p>
               </div>
             )}
           </div>
 
-          {/* Category Breakdown Chart */}
+          {/* Category Breakdown */}
           <div className="bg-white rounded-lg shadow-sm border border-border p-6">
             <h2 className="text-lg font-semibold mb-4">Category Breakdown</h2>
             {categories.length > 0 ? (
@@ -302,9 +434,9 @@ const Analytics = () => {
                 {categories.map(([category, data]) => {
                   const getCategoryColor = (cat) => {
                     const colors = {
-                      Learning: 'bg-blue-500',
-                      Fitness: 'bg-green-500',
-                      Rest: 'bg-purple-500',
+                      Learning: 'bg-purple-500',
+                      Fitness: 'bg-yellow-500',
+                      Rest: 'bg-purple-400',
                       Other: 'bg-gray-500'
                     };
                     return colors[cat] || 'bg-gray-500';
@@ -318,13 +450,13 @@ const Analytics = () => {
                           {data.completed}/{data.total} ({data.completion_rate.toFixed(0)}%)
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
+                      <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
                         <div
                           className={`${getCategoryColor(category)} h-full transition-all duration-300 flex items-center justify-end pr-2`}
                           style={{ width: `${Math.min(data.completion_rate, 100)}%` }}
                         >
-                          {data.completion_rate > 15 && (
-                            <span className="text-xs text-white font-medium">
+                          {data.completion_rate > 20 && (
+                            <span className="text-[10px] text-white font-medium">
                               {data.completion_rate.toFixed(0)}%
                             </span>
                           )}

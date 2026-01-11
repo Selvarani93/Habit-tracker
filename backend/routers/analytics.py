@@ -48,6 +48,24 @@ def get_weekly_analytics(user_id: UUID, db: Session = Depends(get_db)):
             if log.status == 'done':
                 category_stats[category]['completed'] += 1
 
+    # Daily trend (last 7 days)
+    daily_completion = {}
+    for log in logs:
+        date_str = log.date.isoformat()
+        if date_str not in daily_completion:
+            daily_completion[date_str] = {
+                'total': 0,
+                'completed': 0,
+                'actual_minutes': 0,
+                'planned_minutes': 0
+            }
+        daily_completion[date_str]['total'] += 1
+        if log.status == 'done':
+            daily_completion[date_str]['completed'] += 1
+        daily_completion[date_str]['actual_minutes'] += log.actual_minutes
+        if log.routine_task:
+            daily_completion[date_str]['planned_minutes'] += log.routine_task.planned_minutes
+
     # Get user goal
     user_goal = db.query(UserGoal).filter(
         UserGoal.user_id == user_id,
@@ -82,7 +100,18 @@ def get_weekly_analytics(user_id: UUID, db: Session = Depends(get_db)):
                 "completion_rate": round((stats['completed'] / stats['total'] * 100) if stats['total'] > 0 else 0, 2)
             }
             for cat, stats in category_stats.items()
-        }
+        },
+        "daily_trend": [
+            {
+                "date": date_str,
+                "total": data['total'],
+                "completed": data['completed'],
+                "completion_rate": round((data['completed'] / data['total'] * 100) if data['total'] > 0 else 0, 2),
+                "actual_minutes": data['actual_minutes'],
+                "planned_minutes": data['planned_minutes']
+            }
+            for date_str, data in sorted(daily_completion.items())
+        ]
     }
 
 @router.get("/monthly/{user_id}")
@@ -128,10 +157,18 @@ def get_monthly_analytics(user_id: UUID, db: Session = Depends(get_db)):
     for log in logs:
         date_str = log.date.isoformat()
         if date_str not in daily_completion:
-            daily_completion[date_str] = {'total': 0, 'completed': 0}
+            daily_completion[date_str] = {
+                'total': 0,
+                'completed': 0,
+                'actual_minutes': 0,
+                'planned_minutes': 0
+            }
         daily_completion[date_str]['total'] += 1
         if log.status == 'done':
             daily_completion[date_str]['completed'] += 1
+        daily_completion[date_str]['actual_minutes'] += log.actual_minutes
+        if log.routine_task:
+            daily_completion[date_str]['planned_minutes'] += log.routine_task.planned_minutes
 
     # Get user goal
     user_goal = db.query(UserGoal).filter(
@@ -175,7 +212,9 @@ def get_monthly_analytics(user_id: UUID, db: Session = Depends(get_db)):
                 "date": date_str,
                 "total": data['total'],
                 "completed": data['completed'],
-                "completion_rate": round((data['completed'] / data['total'] * 100) if data['total'] > 0 else 0, 2)
+                "completion_rate": round((data['completed'] / data['total'] * 100) if data['total'] > 0 else 0, 2),
+                "actual_minutes": data['actual_minutes'],
+                "planned_minutes": data['planned_minutes']
             }
             for date_str, data in sorted(daily_completion.items())
         ]

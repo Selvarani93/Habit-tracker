@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "C:\Users\data\OneDrive\Desktop\Habit-tracker\backend\main.py", line 3, in <module>
+    from database import Base, engine
+  File "C:\Users\data\OneDrive\Desktop\Habit-tracker\backend\database.py", line 16, in <module>
+    engine = create_engine(DATABASE_URL)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in create_engine
+  File "C:\Users\data\.virtualenvs\Makefile-3F2HCFQc\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\data\.virtualenvs\Makefile-3F2HCFQc\Lib\site-packages\sqlalchemy\engine\create.py", line 599, in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\data\.virtualenvs\Makefile-3F2HCFQc\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg2.py", line 690, in import_dbapi
+    import psycopg2
+ModuleNotFoundError: No module named 'psycopg2'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Dumbbell, Moon, MoreHorizontal, Pencil, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { logsAPI } from '../services/api';
 import { Button } from '../components/ui/button';
@@ -16,7 +16,17 @@ const DailyTracker = () => {
     actual_minutes: 0,
     notes: ''
   });
-  const [today] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
+
+  // Get today's date dynamically (recalculates on each render)
+  const getToday = () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const today = getToday();
 
   // Format date for display
   const todayDisplay = new Date().toLocaleDateString('en-US', {
@@ -109,25 +119,45 @@ const DailyTracker = () => {
     }
   };
 
-  // Get category badge color
-  const getCategoryColor = (category) => {
-    const colors = {
-      Learning: 'bg-blue-100 text-blue-700',
-      Fitness: 'bg-green-100 text-green-700',
-      Rest: 'bg-purple-100 text-purple-700',
-      Other: 'bg-gray-100 text-gray-700'
+  // Get category icon and styling
+  const getCategoryIcon = (category) => {
+    const config = {
+      Learning: {
+        icon: BookOpen,
+        bgColor: 'bg-momentum-lavender',
+        iconColor: 'text-purple-700',
+        borderColor: 'border-purple-300'
+      },
+      Fitness: {
+        icon: Dumbbell,
+        bgColor: 'bg-momentum-cream',
+        iconColor: 'text-amber-700',
+        borderColor: 'border-yellow-300'
+      },
+      Rest: {
+        icon: Moon,
+        bgColor: 'bg-momentum-lavender-light',
+        iconColor: 'text-purple-600',
+        borderColor: 'border-purple-200'
+      },
+      Other: {
+        icon: MoreHorizontal,
+        bgColor: 'bg-gray-100',
+        iconColor: 'text-gray-600',
+        borderColor: 'border-gray-300'
+      }
     };
-    return colors[category] || colors.Other;
+    return config[category] || config.Other;
   };
 
   // Get status badge color
   const getStatusColor = (status) => {
     const colors = {
-      done: 'bg-green-100 text-green-700',
-      partial: 'bg-yellow-100 text-yellow-700',
-      missed: 'bg-red-100 text-red-700',
-      skipped: 'bg-gray-100 text-gray-700',
-      pending: 'bg-blue-100 text-blue-700'
+      done: 'bg-emerald-100 text-emerald-700 border border-emerald-300',
+      partial: 'bg-momentum-cream text-amber-800 border border-yellow-300',
+      missed: 'bg-rose-100 text-rose-700 border border-rose-300',
+      skipped: 'bg-slate-100 text-slate-600 border border-slate-300',
+      pending: 'bg-sky-100 text-sky-700 border border-sky-300'
     };
     return colors[status] || colors.pending;
   };
@@ -185,67 +215,76 @@ const DailyTracker = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {tasks.map((log) => (
-                <Card key={log.id}>
-                  <CardContent className="p-4">
-                    {/* Task Header */}
-                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                      <h3 className="font-medium text-lg">{log.routine_task.name}</h3>
-                      <span className={`text-sm px-2 py-1 rounded ${getCategoryColor(log.routine_task.category)}`}>
-                        {log.routine_task.category}
-                      </span>
-                    </div>
+              {tasks.map((log) => {
+                const categoryConfig = getCategoryIcon(log.routine_task.category);
+                const CategoryIcon = categoryConfig.icon;
 
-                    {/* Status and Time Info */}
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span className={`text-sm px-2 py-1 rounded font-medium ${getStatusColor(log.status)}`}>
-                        {log.status.toUpperCase()}
-                      </span>
-                      <span className="text-sm px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                        Planned: {log.routine_task.planned_minutes} min
-                      </span>
-                      {log.actual_minutes > 0 && (
-                        <span className="text-sm px-2 py-1 bg-green-50 text-green-700 rounded">
-                          Actual: {log.actual_minutes} min
-                        </span>
+                return (
+                  <Card key={log.id}>
+                    <CardContent className="p-4 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div className="flex-1">
+                        {/* Task Header */}
+                        <div className="flex items-center gap-3 mb-3">
+                          {/* Category Icon Square */}
+                          <div className={`${categoryConfig.bgColor} ${categoryConfig.borderColor} border rounded-lg p-2 flex items-center justify-center`}>
+                            <CategoryIcon size={20} className={categoryConfig.iconColor} />
+                          </div>
+                          {/* Task Name */}
+                          <h3 className="font-medium text-lg">{log.routine_task.name}</h3>
+                        </div>
+
+                        {/* Status and Time Info */}
+                        <div className="flex flex-wrap gap-2 mb-3 ml-11">
+                          <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${getStatusColor(log.status)}`}>
+                            {log.status.toUpperCase()}
+                          </span>
+                          <span className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full border border-gray-300 font-medium">
+                            Planned: {log.routine_task.planned_minutes} min
+                          </span>
+                          {log.actual_minutes > 0 && (
+                            <span className="text-sm px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-300 font-medium">
+                              Actual: {log.actual_minutes} min
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Notes Display */}
+                        {log.notes && !expandedTask && (
+                          <div className="mb-3 p-2 bg-gray-50 rounded text-sm text-gray-700 ml-11">
+                            <span className="font-medium">Note:</span> {log.notes}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick Action Buttons */}
+                      {expandedTask !== log.id && (
+                        <div className="flex gap-2 flex-wrap">
+                          <Button size="sm" variant="outline" onClick={() => startEdit(log)}>
+                            <Pencil size={16} className="mr-1" />
+                            Update
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => quickUpdate(log.id, 'done')}
+                            className="hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                          >
+                            ✓ Done
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => quickUpdate(log.id, 'missed')}
+                            className="hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          >
+                            ✗ Missed
+                          </Button>
+                        </div>
                       )}
-                    </div>
 
-                    {/* Notes Display */}
-                    {log.notes && !expandedTask && (
-                      <div className="mb-3 p-2 bg-gray-50 rounded text-sm text-gray-700">
-                        <span className="font-medium">Note:</span> {log.notes}
-                      </div>
-                    )}
-
-                    {/* Quick Action Buttons */}
-                    {expandedTask !== log.id && (
-                      <div className="flex gap-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => startEdit(log)}>
-                          Update
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => quickUpdate(log.id, 'done')}
-                          className="hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                        >
-                          ✓ Done
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => quickUpdate(log.id, 'missed')}
-                          className="hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        >
-                          ✗ Missed
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Expandable Edit Form */}
-                    {expandedTask === log.id && (
-                      <div className="mt-4 pt-4 border-t">
+                      {/* Expandable Edit Form */}
+                      {expandedTask === log.id && (
+                      <div className="w-full mt-4 pt-4 border-t ml-11">
                         <h4 className="font-medium mb-3">Update Task Details</h4>
 
                         {/* Status Selector */}
@@ -300,17 +339,20 @@ const DailyTracker = () => {
                         {/* Action Buttons */}
                         <div className="flex gap-2">
                           <Button onClick={() => handleSaveUpdate(log.id)} className="flex-1">
+                            <Check size={16} className="mr-1" />
                             Save Changes
                           </Button>
                           <Button variant="outline" onClick={cancelEdit} className="flex-1">
+                            <X size={16} className="mr-1" />
                             Cancel
                           </Button>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
