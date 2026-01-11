@@ -2,12 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
 
-from routers import habits, logs, users
+from routers import users, routine_tasks, logs, interviews, analytics
 
 app = FastAPI(
     title="Habit Tracker API",
-    description="API for tracking daily habits",
-    version="1.0.0"
+    description="Comprehensive routine tracking, daily logging, analytics, and interview management system",
+    version="2.0.0"
 )
 
 # Configure CORS (Cross-Origin Resource Sharing) for frontend access
@@ -24,14 +24,17 @@ Base.metadata.create_all(bind=engine)
 
 # Include routers
 app.include_router(users.router)
-app.include_router(habits.router)
+app.include_router(routine_tasks.router)
 app.include_router(logs.router)
+app.include_router(interviews.router)
+app.include_router(analytics.router)
 
 @app.get("/")
 def read_root():
     """Root endpoint - API health check"""
     return {
         "message": "Habit Tracker API is running",
-        "version": "1.0.0",
-        "docs": "/docs"
+        "version": "2.0.0",
+        "docs": "/docs",
+        "modules": ["users", "routine-tasks", "daily-logs", "interviews", "analytics"]
     }

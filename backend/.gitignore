@@ -1,5 +1,6 @@
 # Environment variables (contains sensitive data)
 .env
+.env.example
 
 # Python virtual environment
 venv/

@@ -12,12 +12,18 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """Create a new user"""
+    # If id is provided (from Supabase auth), check if user exists by id
+    if user.id:
+        existing_user = db.query(User).filter(User.id == user.id).first()
+        if existing_user:
+            return existing_user  # User already exists, return it
+
     # Check if user with this email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    new_user = User(**user.model_dump())
+    new_user = User(**user.model_dump(exclude_none=True))
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
