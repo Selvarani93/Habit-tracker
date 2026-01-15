@@ -6,12 +6,16 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-# Get database credentials from environment variables
-SUPABASE_DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD")
-SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF")
+# Get database URL from environment variable
+# In production (Render), use DATABASE_URL env var
+# In development, fall back to constructing from SUPABASE_DB_PASSWORD and SUPABASE_PROJECT_REF
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Construct database URL
-DATABASE_URL = f"postgresql://postgres:{SUPABASE_DB_PASSWORD}@db.{SUPABASE_PROJECT_REF}.supabase.co:5432/postgres"
+if not DATABASE_URL:
+    # Fallback for local development
+    SUPABASE_DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD")
+    SUPABASE_PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF")
+    DATABASE_URL = f"postgresql://postgres:{SUPABASE_DB_PASSWORD}@db.{SUPABASE_PROJECT_REF}.supabase.co:5432/postgres"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
